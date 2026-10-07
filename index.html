@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" id="html">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Windows Forensics Cheatsheet</title>
+<style>
+:root{--bg:#eef1f4;--surface:#fff;--surface2:#f6f8fa;--text:#1b222c;--muted:#5b6672;--border:#d7dde3;--accent:#0f766e;--accent2:#b45309;--code-bg:#f0f3f5;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--surface:#161b22;--surface2:#1c2330;--text:#dde3ea;--muted:#8b96a3;--border:#2a313c;--accent:#2dd4bf;--accent2:#f0b429;--code-bg:#11161d;}}
+:root[data-theme="dark"]{--bg:#0d1117;--surface:#161b22;--surface2:#1c2330;--text:#dde3ea;--muted:#8b96a3;--border:#2a313c;--accent:#2dd4bf;--accent2:#f0b429;--code-bg:#11161d;}
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.layout{display:flex;min-height:100%}
+nav{width:250px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+nav h1{font-size:16px;margin:0 0 10px}
+#search{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text);font-size:13px;margin-bottom:10px}
+#langbtn{width:100%;padding:8px;border:1px solid var(--accent);border-radius:7px;background:var(--surface2);color:var(--accent);font-size:13px;margin-bottom:14px;cursor:pointer;font-weight:600}
+nav ul{list-style:none;margin:0;padding:0}
+nav li a{display:block;padding:6px 8px;color:var(--text);text-decoration:none;font-size:13px;border-radius:6px}
+nav li a:hover{background:var(--surface2)}
+main{flex:1;min-width:0;padding:30px clamp(18px,4vw,50px);max-width:900px}
+section{margin-bottom:40px;scroll-margin-top:14px}
+section h2{font-size:20px;margin:0 0 4px}
+.lede{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+.entry{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.entry.hidden{display:none}
+.entry h3{margin:0 0 3px;font-size:14.5px}
+.entry .path2{color:var(--muted);font-size:11.5px;margin-bottom:9px}
+.qa{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:13px;margin-top:6px}
+.qa .k{color:var(--accent2);font-weight:600}
+.path{background:var(--code-bg);border-radius:6px;padding:7px 9px;font-size:12px;overflow-x:auto;white-space:pre;margin:6px 0}
+table{width:100%;border-collapse:collapse;font-size:12.8px;margin-top:4px}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:11.5px}
+.answer{color:var(--accent);font-weight:600}
+.mindmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.mindmap .node{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px}
+.mindmap .node b{display:block;margin-bottom:5px;color:var(--accent)}
+.mindmap .node span{display:block;font-size:12.5px;color:var(--muted)}
+#menubtn{display:none}
+@media(max-width:820px){nav{position:fixed;left:0;top:0;z-index:10;transform:translateX(-100%);transition:transform .18s;width:82%;max-width:290px}nav.open{transform:translateX(0)}#menubtn{display:block;position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:14px;z-index:11;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-size:13px}main{padding-top:64px}}
+</style>
+</head>
+<body>
+<button id="menubtn">☰</button>
+<div class="layout">
+<nav id="nav">
+  <h1 data-en="🔍 Windows Forensics" data-pt="🔍 Forense Windows">🔍 Windows Forensics</h1>
+  <button id="langbtn" data-en="Português" data-pt="English">Português</button>
+  <input id="search" data-en-ph="Filter…" data-pt-ph="Filtrar…" placeholder="Filter…">
+  <ul>
+    <li><a href="#setup" data-en="Setup" data-pt="Preparação">Setup</a></li>
+    <li><a href="#hives" data-en="Hives" data-pt="Hives (colmeias)">Hives</a></li>
+    <li><a href="#tools" data-en="EZ Tools" data-pt="Ferramentas EZ">EZ Tools</a></li>
+    <li><a href="#map" data-en="Artifact map" data-pt="Mapa de artefatos">Artifact map</a></li>
+    <li><a href="#mindmap" data-en="Mind map" data-pt="Mapa mental">Mind map</a></li>
+    <li><a href="#worked" data-en="Worked example" data-pt="Exemplo resolvido">Worked example</a></li>
+  </ul>
+</nav>
+<main>
+
+<section id="setup">
+<h2 data-en="Setup &amp; tools" data-pt="Preparação &amp; ferramentas">Setup &amp; tools</h2>
+<div class="entry">
+<div class="qa">
+<div class="k" data-en="Run as" data-pt="Rode como">Run as</div><div data-en="Administrator — some hives won't load fully otherwise." data-pt="Administrador — senão algumas hives não carregam por completo.">Administrator — some hives won't load fully otherwise.</div>
+</div>
+<div class="path mono">RegistryExplorer.exe "C:\path\to\hive"</div>
+<div class="qa"><div class="k" data-en="Manual load" data-pt="Carregar manual">Manual load</div><div data-en="File > Load hive. Accept sequence-number warning (Yes). Select both .LOG1 and .LOG2. Load the updated hive (Yes), not the dirty one (No)." data-pt="File > Load hive. Aceite o aviso de sequence number (Yes). Selecione .LOG1 e .LOG2 juntos. Carregue a hive 'updated' (Yes), não a 'dirty' (No).">File &gt; Load hive. Accept sequence-number warning (Yes). Select both .LOG1 and .LOG2. Load the updated hive (Yes), not the dirty one (No).</div></div>
+</div>
+</section>
+
+<section id="hives">
+<h2 data-en="Hives" data-pt="Hives">Hives</h2>
+<p class="lede" data-en="For each hive: what it answers, interesting artifacts, investigative questions, how to analyze." data-pt="Para cada hive: o que responde, artefatos interessantes, perguntas investigativas, como analisar.">For each hive: what it answers, interesting artifacts, investigative questions, how to analyze.</p>
+
+<div class="entry">
+<h3>SYSTEM</h3><div class="path2 mono">C:\Windows\System32\config\SYSTEM</div>
+<div class="qa">
+<div class="k" data-en="Answers" data-pt="Responde">Answers</div><div data-en="Hardware/system config: USB history, services, network, timezone, computer name, active ControlSet." data-pt="Config de hardware/sistema: histórico USB, serviços, rede, fuso, nome do computador, ControlSet ativo.">Hardware/system config: USB history, services, network, timezone, computer name, active ControlSet.</div>
+<div class="k" data-en="Artifacts" data-pt="Artefatos">Artifacts</div><div data-en="USBSTOR/USB, ShimCache, Services, BAM/DAM, Tcpip\Interfaces." data-pt="USBSTOR/USB, ShimCache, Services, BAM/DAM, Tcpip\Interfaces.">USBSTOR/USB, ShimCache, Services, BAM/DAM, Tcpip\Interfaces.</div>
+<div class="k" data-en="Ask" data-pt="Perguntas">Ask</div><div data-en="Which USB devices connected, when? New service = persistence? What binary passed through (ShimCache)? What timezone (to correlate timestamps)?" data-pt="Quais USBs conectaram, quando? Serviço novo = persistência? Qual binário passou pelo sistema (ShimCache)? Qual fuso (pra correlacionar timestamps)?">Which USB devices connected, when? New service = persistence? What binary passed through (ShimCache)? What timezone (to correlate timestamps)?</div>
+<div class="k" data-en="How" data-pt="Como">How</div><div data-en="Registry Explorer (USB Devices, Services bookmarks) or RECmd for batch; AppCompatCacheParser for ShimCache." data-pt="Registry Explorer (bookmarks USB Devices, Services) ou RECmd em lote; AppCompatCacheParser para o ShimCache.">Registry Explorer (USB Devices, Services bookmarks) or RECmd for batch; AppCompatCacheParser for ShimCache.</div>
+</div></div>
+
+<div class="entry">
+<h3>SOFTWARE</h3><div class="path2 mono">C:\Windows\System32\config\SOFTWARE</div>
+<div class="qa">
+<div class="k" data-en="Answers" data-pt="Responde">Answers</div><div data-en="Machine-wide info (not per-user): OS version, installed programs, global autostart, USB friendly name, known Wi-Fi." data-pt="Informação de máquina (não por usuário): versão do SO, programas instalados, autostart global, nome amigável de USB, redes Wi-Fi conhecidas.">Machine-wide info (not per-user): OS version, installed programs, global autostart, USB friendly name, known Wi-Fi.</div>
+<div class="k" data-en="Artifacts" data-pt="Artefatos">Artifacts</div><div data-en="CurrentVersion, Run/RunOnce (machine), Windows Portable Devices\Devices, NetworkList\Profiles, Uninstall." data-pt="CurrentVersion, Run/RunOnce (máquina), Windows Portable Devices\Devices, NetworkList\Profiles, Uninstall.">CurrentVersion, Run/RunOnce (machine), Windows Portable Devices\Devices, NetworkList\Profiles, Uninstall.</div>
+<div class="k" data-en="Ask" data-pt="Perguntas">Ask</div><div data-en="What ran automatically on boot for any user? What's the USB friendly name? What networks has this host joined?" data-pt="O que rodava automaticamente no boot, pra qualquer usuário? Qual o nome amigável do pendrive? A que redes esse host já se conectou?">What ran automatically on boot for any user? What's the USB friendly name? What networks has this host joined?</div>
+<div class="k" data-en="How" data-pt="Como">How</div><div data-en="Registry Explorer, Autoruns/Installed Programs bookmarks; RECmd for batch." data-pt="Registry Explorer, bookmarks de Autoruns e Installed Programs; RECmd em lote.">Registry Explorer, Autoruns/Installed Programs bookmarks; RECmd for batch.</div>
+</div></div>
+
+<div class="entry">
+<h3>SAM</h3><div class="path2 mono">C:\Windows\System32\config\SAM</div>
+<div class="qa">
+<div class="k" data-en="Answers" data-pt="Responde">Answers</div><div data-en="Local user accounts: who exists, last logon, password hint, password hash (for offline cracking)." data-pt="Contas de usuário locais: quem existe, último login, dica de senha, hash de senha (pra quebra offline).">Local user accounts: who exists, last logon, password hint, password hash (for offline cracking).</div>
+<div class="k" data-en="Artifacts" data-pt="Artefatos">Artifacts</div><div class="path mono">SAM\Domains\Account\Users</div>
+<div class="k" data-en="Ask" data-pt="Perguntas">Ask</div><div data-en="How many accounts exist? Any that never logged in (attacker-created)? What's a specific user's password hint?" data-pt="Quantas contas existem? Alguma nunca logou (indício de conta criada por atacante)? Qual a dica de senha de um usuário específico?">How many accounts exist? Any that never logged in (attacker-created)? What's a specific user's password hint?</div>
+<div class="k" data-en="How" data-pt="Como">How</div><div data-en="Registry Explorer, 'Users' bookmark. Loading SYSTEM alongside helps decode some values." data-pt="Registry Explorer, bookmark 'Users'. Carregar a SYSTEM junto ajuda a decodificar alguns valores.">Registry Explorer, 'Users' bookmark. Loading SYSTEM alongside helps decode some values.</div>
+</div></div>
+
+<div class="entry">
+<h3>SECURITY</h3><div class="path2 mono">C:\Windows\System32\config\SECURITY</div>
+<div class="qa">
+<div class="k" data-en="Answers" data-pt="Responde">Answers</div><div data-en="Local security policy and LSA secrets: audit policy (why certain Event IDs show up or not), cached domain credentials." data-pt="Política de segurança local e segredos LSA: política de auditoria (explica lacunas nos logs), credenciais de domínio em cache.">Local security policy and LSA secrets: audit policy (why certain Event IDs show up or not), cached domain credentials.</div>
+<div class="k" data-en="Artifacts" data-pt="Artefatos">Artifacts</div><div data-en="Policy\PolAdtEv, Cache, LSA Secrets." data-pt="Policy\PolAdtEv, Cache, LSA Secrets.">Policy\PolAdtEv, Cache, LSA Secrets.</div>
+<div class="k" data-en="Ask" data-pt="Perguntas">Ask</div><div data-en="Which audit policies were active? Any cached domain credentials on this host?" data-pt="Quais políticas de auditoria estavam ativas? Havia credenciais de domínio cacheadas?">Which audit policies were active? Any cached domain credentials on this host?</div>
+<div class="k" data-en="How" data-pt="Como">How</div><div data-en="Registry Explorer loads it, but many values are binary/encrypted — more context than direct answers." data-pt="Registry Explorer carrega, mas muitos valores são binários/criptografados — mais contexto do que resposta direta.">Registry Explorer loads it, but many values are binary/encrypted — more context than direct answers.</div>
+</div></div>
+
+<div class="entry">
+<h3>NTUSER.DAT</h3><div class="path2 mono">C:\Users\&lt;user&gt;\NTUSER.DAT</div>
+<div class="qa">
+<div class="k" data-en="Answers" data-pt="Responde">Answers</div><div data-en="Everything about ONE user's activity: what they ran, opened, typed, what starts at their logon." data-pt="Tudo sobre a atividade de UM usuário: o que executou, abriu, digitou, o que roda no logon dele.">Everything about ONE user's activity: what they ran, opened, typed, what starts at their logon.</div>
+<div class="k" data-en="Artifacts" data-pt="Artefatos">Artifacts</div><div data-en="UserAssist, RecentDocs, TypedPaths/WordWheelQuery, Run/RunOnce (user), ComDlg32, Shell\BagMRU." data-pt="UserAssist, RecentDocs, TypedPaths/WordWheelQuery, Run/RunOnce (usuário), ComDlg32, Shell\BagMRU.">UserAssist, RecentDocs, TypedPaths/WordWheelQuery, Run/RunOnce (user), ComDlg32, Shell\BagMRU.</div>
+<div class="k" data-en="Ask" data-pt="Perguntas">Ask</div><div data-en="What did this user execute, with full path? What files did they open? What did they type in Explorer?" data-pt="O que esse usuário executou, com caminho completo? Quais arquivos abriu? O que digitou no Explorer?">What did this user execute, with full path? What files did they open? What did they type in Explorer?</div>
+<div class="k" data-en="How" data-pt="Como">How</div><div data-en="Load the suspect user's NTUSER.DAT; UserAssist and RecentDocs bookmarks." data-pt="Carregue o NTUSER.DAT do usuário suspeito; bookmarks UserAssist e RecentDocs.">Load the suspect user's NTUSER.DAT; UserAssist and RecentDocs bookmarks.</div>
+</div></div>
+
+<div class="entry">
+<h3>UsrClass.dat</h3><div class="path2 mono">C:\Users\&lt;user&gt;\AppData\Local\Microsoft\Windows\UsrClass.dat</div>
+<div class="qa">
+<div class="k" data-en="Answers" data-pt="Responde">Answers</div><div data-en="Completes the folder-browsing trail (ShellBags) — Explorer window state per folder, even deleted or removable ones." data-pt="Completa o rastro de navegação de pastas (ShellBags) — estado da janela do Explorer por pasta, mesmo deletada ou removível.">Completes the folder-browsing trail (ShellBags) — Explorer window state per folder, even deleted or removable ones.</div>
+<div class="k" data-en="Artifacts" data-pt="Artefatos">Artifacts</div><div data-en="Local Settings\Software\Microsoft\Windows\Shell\BagMRU and \Bags." data-pt="Local Settings\Software\Microsoft\Windows\Shell\BagMRU e \Bags.">Local Settings\Software\Microsoft\Windows\Shell\BagMRU and \Bags.</div>
+<div class="k" data-en="Ask" data-pt="Perguntas">Ask</div><div data-en="Which folders did the user browse, even if gone now? Any folder on a USB or network share?" data-pt="Quais pastas o usuário navegou, mesmo que não existam mais? Alguma pasta num USB ou compartilhamento de rede?">Which folders did the user browse, even if gone now? Any folder on a USB or network share?</div>
+<div class="k" data-en="How" data-pt="Como">How</div><div data-en="Best via SBECmd — merges NTUSER.DAT + UsrClass.dat and rebuilds full paths with timestamps automatically." data-pt="Melhor via SBECmd — junta NTUSER.DAT + UsrClass.dat e reconstrói o caminho completo com timestamps automaticamente.">Best via SBECmd — merges NTUSER.DAT + UsrClass.dat and rebuilds full paths with timestamps automatically.</div>
+</div></div>
+</section>
+
+<section id="tools">
+<h2 data-en="Eric Zimmerman's tools" data-pt="Ferramentas do Eric Zimmerman">Eric Zimmerman's tools</h2>
+<div class="entry"><table>
+<tr><th data-en="Tool" data-pt="Ferramenta">Tool</th><th data-en="Source" data-pt="Fonte">Source</th><th data-en="Answers" data-pt="Responde">Answers</th></tr>
+<tr><td class="mono">Registry Explorer</td><td data-en="all hives" data-pt="todas as hives">all hives</td><td data-en="Any registry question — manual or via bookmarks (Users, USB Devices, RecentDocs, UserAssist, Services...)" data-pt="Qualquer pergunta de registro — manual ou via bookmarks (Users, USB Devices, RecentDocs, UserAssist, Services...)">Any registry question — manual or via bookmarks (Users, USB Devices, RecentDocs, UserAssist, Services...)</td></tr>
+<tr><td class="mono">RECmd</td><td data-en="all hives" data-pt="todas as hives">all hives</td><td data-en="Same as Registry Explorer, command-line — batch extraction across hosts/hives" data-pt="O mesmo que Registry Explorer, via linha de comando — extração em lote entre hosts/hives">Same as Registry Explorer, command-line — batch extraction across hosts/hives</td></tr>
+<tr><td class="mono">AmcacheParser</td><td>Amcache.hve</td><td data-en="Confirmed execution + SHA1 hash + first-seen time" data-pt="Execução confirmada + hash SHA1 + primeira vez visto">Confirmed execution + SHA1 hash + first-seen time</td></tr>
+<tr><td class="mono">AppCompatCacheParser</td><td>SYSTEM</td><td data-en="ShimCache — executables that passed through (strong hint, not proof of execution)" data-pt="ShimCache — executáveis que passaram pelo sistema (indício forte, não prova de execução)">ShimCache — executables that passed through (strong hint, not proof of execution)</td></tr>
+<tr><td class="mono">EvtxECmd</td><td data-en="none — .evtx files" data-pt="nenhuma — arquivos .evtx">none — .evtx files</td><td data-en="Logons (4624/4625), service creation (7045), scheduled tasks (4698/4702), PowerShell (4104), any Event ID" data-pt="Logons (4624/4625), criação de serviço (7045), tarefas agendadas (4698/4702), PowerShell (4104), qualquer Event ID">Logons (4624/4625), service creation (7045), scheduled tasks (4698/4702), PowerShell (4104), any Event ID</td></tr>
+<tr><td class="mono">JLECmd</td><td data-en="none — Jump Lists" data-pt="nenhuma — Jump Lists">none — Jump Lists</td><td data-en="Files/programs accessed via taskbar or start menu, with timestamps" data-pt="Arquivos/programas acessados via taskbar ou menu iniciar, com timestamps">Files/programs accessed via taskbar or start menu, with timestamps</td></tr>
+<tr><td class="mono">LECmd</td><td data-en="none — .lnk files" data-pt="nenhuma — arquivos .lnk">none — .lnk files</td><td data-en="Original path of referenced file/folder, source volume (incl. removable), MAC timestamps" data-pt="Caminho original do arquivo/pasta, volume de origem (incl. removível), timestamps MAC">Original path of referenced file/folder, source volume (incl. removable), MAC timestamps</td></tr>
+<tr><td class="mono">MFTECmd</td><td data-en="none — $MFT" data-pt="nenhuma — $MFT">none — $MFT</td><td data-en="Full list of files/folders that existed on the volume, timestamps, deletion hints" data-pt="Lista completa de arquivos/pastas que existiram no volume, timestamps, indícios de exclusão">Full list of files/folders that existed on the volume, timestamps, deletion hints</td></tr>
+<tr><td class="mono">SBECmd</td><td>NTUSER.DAT + UsrClass.dat</td><td data-en="Folder-browsing history (ShellBags) with full path, even if folder no longer exists" data-pt="Histórico de navegação de pastas (ShellBags) com caminho completo, mesmo que a pasta não exista mais">Folder-browsing history (ShellBags) with full path, even if folder no longer exists</td></tr>
+<tr><td class="mono">RBECmd</td><td data-en="none — $Recycle.Bin" data-pt="nenhuma — $Recycle.Bin">none — $Recycle.Bin</td><td data-en="Original filename/path, deletion timestamp, file size" data-pt="Nome/caminho original do arquivo, data/hora de exclusão, tamanho">Original filename/path, deletion timestamp, file size</td></tr>
+</table></div>
+</section>
+
+<section id="map">
+<h2 data-en="Artifact map — beyond the registry" data-pt="Mapa de artefatos — além do registro">Artifact map</h2>
+<div class="entry"><table>
+<tr><th data-en="Question" data-pt="Pergunta">Question</th><th data-en="Location" data-pt="Local">Location</th><th data-en="Tool" data-pt="Ferramenta">Tool</th></tr>
+<tr><td data-en="Did this program run?" data-pt="Esse programa rodou?">Did this program run?</td><td class="mono">C:\Windows\Prefetch</td><td>PECmd</td></tr>
+<tr><td data-en="Who logged on, how?" data-pt="Quem logou, como?">Who logged on, how?</td><td data-en="Security log, EventID 4624/4625/4648" data-pt="Security log, EventID 4624/4625/4648">Security log, EventID 4624/4625/4648</td><td>EvtxECmd</td></tr>
+<tr><td data-en="Network connections?" data-pt="Conexões de rede?">Network connections?</td><td data-en="SRUM database, EventID 5156" data-pt="Base SRUM, EventID 5156">SRUM database, EventID 5156</td><td>SRUM-Dump</td></tr>
+<tr><td data-en="Files deleted/wiped?" data-pt="Arquivos deletados?">Files deleted/wiped?</td><td class="mono">$Recycle.Bin, MFT, USN Journal</td><td>RBECmd / MFTECmd</td></tr>
+</table></div>
+</section>
+
+<section id="mindmap">
+<h2 data-en="Mind map" data-pt="Mapa mental">Mind map</h2>
+<div class="mindmap">
+<div class="node"><b data-en="Program execution" data-pt="Execução de programas">Program execution</b><span>UserAssist · Prefetch · Amcache · ShimCache · BAM/DAM</span></div>
+<div class="node"><b data-en="File access" data-pt="Acesso a arquivos">File access</b><span data-en="LNK (LECmd) · Jump Lists (JLECmd) · RecentDocs" data-pt="LNK (LECmd) · Jump Lists (JLECmd) · RecentDocs">LNK (LECmd) · Jump Lists (JLECmd) · RecentDocs</span></div>
+<div class="node"><b data-en="Folder browsing" data-pt="Navegação em pastas">Folder browsing</b><span data-en="ShellBags (SBECmd — NTUSER.DAT + UsrClass.dat)" data-pt="ShellBags (SBECmd — NTUSER.DAT + UsrClass.dat)">ShellBags (SBECmd — NTUSER.DAT + UsrClass.dat)</span></div>
+<div class="node"><b data-en="Persistence" data-pt="Persistência">Persistence</b><span data-en="Run/RunOnce · Services · Scheduled Tasks (4698/4702)" data-pt="Run/RunOnce · Serviços · Tarefas agendadas (4698/4702)">Run/RunOnce · Services · Scheduled Tasks (4698/4702)</span></div>
+<div class="node"><b data-en="Logon & security" data-pt="Login e segurança">Logon &amp; security</b><span data-en="Event Logs (EvtxECmd) · SAM · SECURITY" data-pt="Event Logs (EvtxECmd) · SAM · SECURITY">Event Logs (EvtxECmd) · SAM · SECURITY</span></div>
+<div class="node"><b data-en="System files" data-pt="Arquivos do sistema">System files</b><span>MFT (MFTECmd)</span></div>
+<div class="node"><b data-en="Deleted files" data-pt="Arquivos deletados">Deleted files</b><span data-en="Recycle Bin (RBECmd) · MFT/USN Journal" data-pt="Lixeira (RBECmd) · MFT/USN Journal">Recycle Bin (RBECmd) · MFT/USN Journal</span></div>
+<div class="node"><b data-en="USB devices" data-pt="Dispositivos USB">USB devices</b><span data-en="SYSTEM (USBSTOR) · SOFTWARE (friendly name)" data-pt="SYSTEM (USBSTOR) · SOFTWARE (nome amigável)">SYSTEM (USBSTOR) · SOFTWARE (friendly name)</span></div>
+<div class="node"><b data-en="Network" data-pt="Rede">Network</b><span data-en="SYSTEM (Tcpip\Interfaces) · SOFTWARE (NetworkList)" data-pt="SYSTEM (Tcpip\Interfaces) · SOFTWARE (NetworkList)">SYSTEM (Tcpip\Interfaces) · SOFTWARE (NetworkList)</span></div>
+</div>
+</section>
+
+<section id="worked">
+<h2 data-en="Worked example — THM Windows Forensics 1" data-pt="Exemplo resolvido — THM Windows Forensics 1">Worked example</h2>
+<div class="entry"><table>
+<tr><th data-en="Question" data-pt="Pergunta">Question</th><th data-en="Where" data-pt="Onde">Where</th><th data-en="Answer" data-pt="Resposta">Answer</th></tr>
+<tr><td data-en="User-created accounts?" data-pt="Contas criadas pelo usuário?">User-created accounts?</td><td class="mono">SAM\Domains\Account\Users</td><td class="answer">3</td></tr>
+<tr><td data-en="Never logged in?" data-pt="Nunca logou?">Never logged in?</td><td class="mono">...Users\000003EB → F</td><td class="answer">thm-user2</td></tr>
+<tr><td data-en="Password hint, THM-4n6?" data-pt="Dica de senha, THM-4n6?">Password hint, THM-4n6?</td><td class="mono">...Users\000003E9</td><td class="answer">count</td></tr>
+<tr><td data-en="Changelog.txt accessed?" data-pt="Changelog.txt acessado?">Changelog.txt accessed?</td><td class="mono">...Explorer\RecentDocs</td><td class="answer">2021-11-24 18:18:48</td></tr>
+<tr><td data-en="Python 3.8.2 installer path?" data-pt="Caminho do instalador Python 3.8.2?">Python 3.8.2 installer path?</td><td class="mono">...UserAssist\{GUID}\Count</td><td class="answer">Z:\setups\python-3.8.2.exe</td></tr>
+<tr><td data-en="USB 'USB' last connected?" data-pt="USB 'USB' última conexão?">USB 'USB' last connected?</td><td class="mono">...Enum\USBSTOR → 0066</td><td class="answer">2021-11-24 18:40:06</td></tr>
+</table></div>
+</section>
+
+</main>
+</div>
+<script>
+var lang='en';
+function render(){
+  document.documentElement.lang=(lang==='en'?'en':'pt-BR');
+  document.querySelectorAll('[data-en]').forEach(function(el){
+    var v=el.getAttribute('data-'+lang); if(v!==null) el.textContent=v;
+  });
+  var s=document.getElementById('search');
+  s.placeholder = s.getAttribute('data-'+lang+'-ph');
+  var btn=document.getElementById('langbtn');
+  btn.textContent = lang==='en' ? btn.getAttribute('data-en') : btn.getAttribute('data-pt');
+}
+document.getElementById('langbtn').addEventListener('click',function(){
+  lang = lang==='en' ? 'pt' : 'en';
+  render();
+});
+render();
+document.getElementById('search').addEventListener('input',function(){
+  var q=this.value.toLowerCase();
+  document.querySelectorAll('.entry').forEach(function(e){
+    e.classList.toggle('hidden', q.length>0 && !e.innerText.toLowerCase().includes(q));
+  });
+});
+var menubtn=document.getElementById('menubtn'), nav=document.getElementById('nav');
+menubtn.addEventListener('click',function(){nav.classList.toggle('open')});
+document.querySelectorAll('nav a').forEach(function(a){a.addEventListener('click',function(){nav.classList.remove('open')})});
+</script>
+</body>
+</html>
